@@ -1,4 +1,7 @@
-im = imread('42_meitu_2.jpg');
+clc;clear;
+addpath('RGB2Lab')
+
+im = imread('42.jpg');
 imshow(im)
 
 lab = RGB2Lab(im);
