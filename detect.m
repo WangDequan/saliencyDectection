@@ -20,9 +20,40 @@ for i = 1:size(im,1)
       
    end
 end
-%normalize it
+normalize it
 theMax = max(saliency(:));
 saliency = saliency / theMax;
 
 figure
 imshow(saliency)
+
+saliencySorted = sort(saliency(:),'descend');
+percentageThreshold = 0.12;
+threshold = saliencySorted(floor(percentageThreshold*length(saliencySorted)));
+
+BW = im2bw(saliency, threshold);
+figure
+imshow(BW)
+se = strel('disk',2);        
+BW = imdilate(BW,se);
+BW = imerode(BW,se);
+figure
+imshow(BW)
+
+%find the largest one
+CC = bwconncomp(BW);
+numPixels = cellfun(@numel,CC.PixelIdxList);
+[biggest,idx] = max(numPixels);
+BW(:) = 0;
+BW(CC.PixelIdxList{idx}) = 1;
+figure
+imshow(BW)
+
+STATS = regionprops(BW, 'BoundingBox');
+b = STATS.BoundingBox;
+boundingbox = [ceil(b(2)),ceil(b(1)),floor(b(4)),floor(b(3))];
+boundingbox(3) = boundingbox(1) + boundingbox(3) - 1;
+boundingbox(4) = boundingbox(2) + boundingbox(4) - 1;
+finalIm = drawRectangleOnImage(im,boundingbox);
+figure
+imshow(finalIm)
