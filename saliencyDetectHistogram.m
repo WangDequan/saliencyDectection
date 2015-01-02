@@ -1,7 +1,8 @@
 clc;clear;
 addpath('RGB2Lab')
+addpath('pic')
 
-im = imread('123.jpg');
+im = imread('2205.jpg');
 imshow(im)
 
 quant_im = zeros(size(im));
@@ -129,15 +130,15 @@ for i = 1:length(mainColorList)
 end
 
 saliencyList = zeros(length(mainColorList),1);
+diffLabMatrix = zeros(length(mainColorList),length(mainColorList));
 for i = 1:length(mainColorList)
-    saliencySum = 0;
     tmp = mainColorList(i,1:3);
     I = tmp(1);
     J = tmp(2);
     K = tmp(3);
     for j = 1:length(mainColorList)
-        if(i == j)
-            continue;
+        if(j >= i)
+            break;
         end
         tmp = mainColorList(j,1:3);
         II = tmp(1);
@@ -147,10 +148,39 @@ for i = 1:length(mainColorList)
         theDiff(1) = labSpace{I,J,K}{1} - labSpace{II,JJ,KK}{1};
         theDiff(2) = labSpace{I,J,K}{2} - labSpace{II,JJ,KK}{2};
         theDiff(3) = labSpace{I,J,K}{3} - labSpace{II,JJ,KK}{3};
+        diffLabMatrix(i,j) = norm(theDiff);
+        diffLabMatrix(j,i) = diffLabMatrix(i,j);
+        
+    end
 
-        saliencySum = saliencySum + frequencyList(j) * norm(theDiff);
+end
+
+for i = 1:length(mainColorList)
+    saliencySum = 0;
+    for j = 1:length(mainColorList)
+        if(i == j)
+            continue;
+        end
+        saliencySum = saliencySum + frequencyList(j) * diffLabMatrix(i,j);
     end
     saliencyList(i) = saliencySum;
+end
+
+%we need to smooth the saliency list
+m = ceil(length(saliencyList) / 4);
+newSaliencyList = size(saliencyList);
+for i = 1:length(saliencyList)
+    [~,neighbourList] = sort( diffLabMatrix(:,i) );
+    nearColorList = neighbourList(1:m);
+    T = 0;
+    for j = 1:m
+        T = T + diffLabMatrix(i,nearColorList(j));
+    end
+    newSaliencySum = 0;
+    for j = 1:m
+        newSaliencySum = newSaliencySum + (T - diffLabMatrix(i,nearColorList(j)) )*saliencyList(nearColorList(j));
+    end
+    newSaliencyList(i) = newSaliencySum / ((m-1)*T);
 end
 
 %create the saliency space
@@ -160,10 +190,10 @@ for i = 1:length(mainColorList)
     I = tmp(1);
     J = tmp(2);
     K = tmp(3);
-    saliencySpace(I,J,K) = saliencyList(i);
+    saliencySpace(I,J,K) = newSaliencyList(i);
 end
 
-theSaliencyMax = max(saliencyList(:));
+theSaliencyMax = max(newSaliencyList(:));
 saliencyIm = zeros(size(im,1),size(im,2));
 for i = 1:size(im,1)
     for j = 1:size(im,2)
@@ -201,8 +231,8 @@ OtsuThreshold = graythresh(saliency);
 BW_otsu = im2bw(saliency,OtsuThreshold);
 
 
-BW = BW_otsu;
-%BW = im2bw(saliency, threshold);
+%BW = BW_otsu;
+BW = im2bw(saliency, threshold);
 figure
 imshow(BW)
 se = strel('disk',2);        
