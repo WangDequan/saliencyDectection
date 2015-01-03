@@ -2,7 +2,7 @@ clc;clear;
 addpath('Dependencies/RGB2Lab')
 addpath('pic')
 
-im = imread('17.jpg');
+im = imread('1.jpg');
 imshow(im)
 
 quant_im = zeros(size(im));
@@ -72,13 +72,13 @@ for j = i + 1:length(sortedArray)
 end
 
 %replace each rare colour to main colour
-for i = 1:length(rareColorList)
+for i = 1:size(rareColorList,1)
     tmp = rareColorList(i,1:3);
     I = tmp(1);
     J = tmp(2);
     K = tmp(3);
-    diffList = zeros(length(mainColorList),1);
-    for j = 1:length(mainColorList)
+    diffList = zeros(size(mainColorList,1),1);
+    for j = 1:size(mainColorList,1)
         tmp = mainColorList(j,1:3);
         II = tmp(1);
         JJ = tmp(2);
@@ -120,8 +120,8 @@ figure
 imshow(quant_im_reduce_toshow)
 
 %begin to calculate the saliency
-frequencyList = zeros(length(mainColorList),1);
-for i = 1:length(mainColorList)
+frequencyList = zeros(size(mainColorList,1),1);
+for i = 1:size(mainColorList,1)
     tmp = mainColorList(i,1:3);
     I = tmp(1);
     J = tmp(2);
@@ -129,14 +129,14 @@ for i = 1:length(mainColorList)
     frequencyList(i) = countSpace(I,J,K) / totalPixelNum;
 end
 
-saliencyList = zeros(length(mainColorList),1);
-diffLabMatrix = zeros(length(mainColorList),length(mainColorList));
-for i = 1:length(mainColorList)
+saliencyList = zeros(size(mainColorList,1),1);
+diffLabMatrix = zeros(size(mainColorList,1),size(mainColorList,1));
+for i = 1:size(mainColorList,1)
     tmp = mainColorList(i,1:3);
     I = tmp(1);
     J = tmp(2);
     K = tmp(3);
-    for j = 1:length(mainColorList)
+    for j = 1:size(mainColorList,1)
         if(j >= i)
             break;
         end
@@ -155,9 +155,9 @@ for i = 1:length(mainColorList)
 
 end
 
-for i = 1:length(mainColorList)
+for i = 1:size(mainColorList,1)
     saliencySum = 0;
-    for j = 1:length(mainColorList)
+    for j = 1:size(mainColorList,1)
         if(i == j)
             continue;
         end
@@ -185,7 +185,7 @@ end
 
 %create the saliency space
 saliencySpace = zeros(12,12,12);
-for i = 1:length(mainColorList)
+for i = 1:size(mainColorList,1)
     tmp = mainColorList(i,1:3);
     I = tmp(1);
     J = tmp(2);

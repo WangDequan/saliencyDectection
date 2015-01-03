@@ -16,7 +16,7 @@ k = 200; % controls size of segments of initial segmentation.
 minSize = k;
 sigma = 0.8;
 
-im = imread('42.jpg');
+im = imread('1.jpg');
 imshow(im)
 
 %change the image to lab color map
@@ -78,7 +78,7 @@ end
 [sortedArray,rank] = sort(countSpace(:),'descend');
 totalPixelNum = size(im,1) * size(im,2);
 sumPixel = 0;
-pixelThreshold = 0.99;
+pixelThreshold = 0.95;
 totalPixelThreshold = floor(totalPixelNum * pixelThreshold);
 
 for i = 1:length(sortedArray)
@@ -106,8 +106,8 @@ for i = 1:length(rareColorList)
     I = tmp(1);
     J = tmp(2);
     K = tmp(3);
-    diffList = zeros(length(mainColorList),1);
-    for j = 1:length(mainColorList)
+    diffList = zeros(size(mainColorList,1),1);
+    for j = 1:size(mainColorList,1)
         tmp = mainColorList(j,1:3);
         II = tmp(1);
         JJ = tmp(2);
@@ -147,144 +147,148 @@ end
 quant_im_reduce_toshow = (quant_im_reduce - 1) * 23;
 figure
 imshow(quant_im_reduce_toshow)
-% 
-% %begin to calculate the saliency
-% frequencyList = zeros(length(mainColorList),1);
-% for i = 1:length(mainColorList)
-%     tmp = mainColorList(i,1:3);
-%     I = tmp(1);
-%     J = tmp(2);
-%     K = tmp(3);
-%     frequencyList(i) = countSpace(I,J,K) / totalPixelNum;
-% end
-% 
-% saliencyList = zeros(length(mainColorList),1);
-% diffLabMatrix = zeros(length(mainColorList),length(mainColorList));
-% for i = 1:length(mainColorList)
-%     tmp = mainColorList(i,1:3);
-%     I = tmp(1);
-%     J = tmp(2);
-%     K = tmp(3);
-%     for j = 1:length(mainColorList)
-%         if(j >= i)
-%             break;
-%         end
-%         tmp = mainColorList(j,1:3);
-%         II = tmp(1);
-%         JJ = tmp(2);
-%         KK = tmp(3);
-%         theDiff = zeros(1,3);
-%         theDiff(1) = labSpace{I,J,K}{1} - labSpace{II,JJ,KK}{1};
-%         theDiff(2) = labSpace{I,J,K}{2} - labSpace{II,JJ,KK}{2};
-%         theDiff(3) = labSpace{I,J,K}{3} - labSpace{II,JJ,KK}{3};
-%         diffLabMatrix(i,j) = norm(theDiff);
-%         diffLabMatrix(j,i) = diffLabMatrix(i,j);
-%         
-%     end
-% 
-% end
-% 
-% for i = 1:length(mainColorList)
-%     saliencySum = 0;
-%     for j = 1:length(mainColorList)
-%         if(i == j)
-%             continue;
-%         end
-%         saliencySum = saliencySum + frequencyList(j) * diffLabMatrix(i,j);
-%     end
-%     saliencyList(i) = saliencySum;
-% end
-% 
-% %we need to smooth the saliency list
-% m = ceil(length(saliencyList) / 4);
-% newSaliencyList = size(saliencyList);
-% for i = 1:length(saliencyList)
-%     [~,neighbourList] = sort( diffLabMatrix(:,i) );
-%     nearColorList = neighbourList(1:m);
-%     T = 0;
-%     for j = 1:m
-%         T = T + diffLabMatrix(i,nearColorList(j));
-%     end
-%     newSaliencySum = 0;
-%     for j = 1:m
-%         newSaliencySum = newSaliencySum + (T - diffLabMatrix(i,nearColorList(j)) )*saliencyList(nearColorList(j));
-%     end
-%     newSaliencyList(i) = newSaliencySum / ((m-1)*T);
-% end
-% 
-% %create the saliency space
-% saliencySpace = zeros(12,12,12);
-% for i = 1:length(mainColorList)
-%     tmp = mainColorList(i,1:3);
-%     I = tmp(1);
-%     J = tmp(2);
-%     K = tmp(3);
-%     saliencySpace(I,J,K) = newSaliencyList(i);
-% end
-% 
-% theSaliencyMax = max(newSaliencyList(:));
-% saliencyIm = zeros(size(im,1),size(im,2));
-% for i = 1:size(im,1)
-%     for j = 1:size(im,2)
-%         tmp = quant_im_reduce(i,j,1:3);
-%         I = tmp(1);
-%         J = tmp(2);
-%         K = tmp(3);
-%         saliencyIm(i,j) = saliencySpace(I,J,K);
-%     end
-% end
-% 
-% saliencyIm = saliencyIm / theSaliencyMax;
-% saliency = saliencyIm;
-% 
-% 
-% %this part show one color
-% %mat = ones(300,300,3);
-% %colorNUM = 3;
-% %mat(:,:,1) = mat(:,:,1) * (rareColorList(colorNUM,1) - 1)*23;
-% %mat(:,:,2) = mat(:,:,2) * (rareColorList(colorNUM,2) - 1)*23;
-% %mat(:,:,3) = mat(:,:,3) * (rareColorList(colorNUM,3) - 1)*23;
-% %mat = uint8(mat);
-% %figure
-% %imshow(mat)
-% 
-% 
-% figure
-% imshow(saliency)
-% 
-% saliencySorted = sort(saliency(:),'descend');
-% percentageThreshold = 0.20;
-% threshold = saliencySorted(floor(percentageThreshold*length(saliencySorted)));
-% 
-% OtsuThreshold = graythresh(saliency);
-% BW_otsu = im2bw(saliency,OtsuThreshold);
-% 
-% 
-% %BW = BW_otsu;
-% BW = im2bw(saliency, threshold);
-% figure
-% imshow(BW)
-% se = strel('disk',2);        
+
+%so now we can begin to work with fewer colours
+diffLabMatrix = zeros(size(mainColorList,1),size(mainColorList,1));
+for i = 1:size(mainColorList,1)
+    tmp = mainColorList(i,1:3);
+    I = tmp(1);
+    J = tmp(2);
+    K = tmp(3);
+    for j = 1:size(mainColorList,1)
+        if(j >= i)
+            break;
+        end
+        tmp = mainColorList(j,1:3);
+        II = tmp(1);
+        JJ = tmp(2);
+        KK = tmp(3);
+        theDiff = zeros(1,3);
+        theDiff(1) = labSpace{I,J,K}{1} - labSpace{II,JJ,KK}{1};
+        theDiff(2) = labSpace{I,J,K}{2} - labSpace{II,JJ,KK}{2};
+        theDiff(3) = labSpace{I,J,K}{3} - labSpace{II,JJ,KK}{3};
+        diffLabMatrix(i,j) = norm(theDiff);
+        diffLabMatrix(j,i) = diffLabMatrix(i,j);
+        
+    end
+
+end
+
+%get the frequency table for each region
+numberOfRegion = size(neighbours,1);
+numberOfMainColor = size(mainColorList,1);
+frequencyTable = zeros(numberOfMainColor,numberOfRegion);
+mainColorIndexSpace = zeros(12,12,12);
+for i = 1:size(mainColorList,1)   %this is an inverted list
+    tmp = mainColorList(i,1:3);
+    I = tmp(1);
+    J = tmp(2);
+    K = tmp(3);
+    mainColorIndexSpace(I,J,K) = i;
+    
+end
+regionSizeList = zeros(numberOfRegion,1);
+for i = 1: numberOfRegion
+    regionPos = find(blobIndIm == i);
+    regionSizeList(i) = length(regionPos);
+    
+    for j = 1:length(regionPos)
+        pos = regionPos(j);
+        [x,y] = ind2sub(size(blobIndIm),pos);
+        I = quant_im_reduce(x,y,1);
+        J = quant_im_reduce(x,y,2);
+        K = quant_im_reduce(x,y,3);
+    
+        
+        frequencyTable(mainColorIndexSpace(I,J,K),i) = frequencyTable(mainColorIndexSpace(I,J,K),i) + 1; 
+    end
+    frequencyTable(:,i) = frequencyTable(:,i) / regionSizeList(i);
+end
+
+regionColorDistMatrix = zeros(numberOfRegion,numberOfRegion);
+for i = 1:numberOfRegion
+    for j = i+1 : numberOfRegion
+        diffValue = 0;
+        for m = 1:numberOfMainColor
+            for n = 1:numberOfMainColor
+                diffValue = diffValue + frequencyTable(m,i)*frequencyTable(n,j)*diffLabMatrix(n,m);
+            end
+        end
+        regionColorDistMatrix(i,j) = diffValue;
+        regionColorDistMatrix(j,i) = diffValue;
+    end
+
+end
+
+%get the region distance matrix
+longestDist = norm(size(quant_im_reduce));
+STATS = regionprops(blobIndIm, 'Centroid');
+regionGeoDistMatrix = zeros(numberOfRegion,numberOfRegion);
+for i = 1:numberOfRegion
+    for j = i+1 : numberOfRegion
+        regionGeoDistMatrix(i,j) = norm(STATS(i).Centroid - STATS(j).Centroid) / longestDist;
+        regionGeoDistMatrix(j,i) = regionGeoDistMatrix(i,j);
+    end
+end
+
+regionSaliencyList = zeros(numberOfRegion,1);
+for i = 1:numberOfRegion
+    saliencyValue = 0;
+    for j = 1:numberOfRegion
+        if(i==j)
+            continue;
+        end
+        saliencyValue = saliencyValue + exp(regionGeoDistMatrix(i,j)/0.4) * regionSizeList(j) * regionColorDistMatrix(i,j);
+    end
+    regionSaliencyList(i) = saliencyValue;
+end
+
+saliencyMax = max(regionSaliencyList);
+regionSaliencyList = regionSaliencyList / saliencyMax;
+
+%paint the saliency map
+saliency = zeros(size(blobIndIm));
+for i = 1:numberOfRegion
+    regionPos = find(blobIndIm == i);
+    saliency(regionPos) = regionSaliencyList(i);
+end
+
+figure
+imshow(saliency)
+
+saliencySorted = sort(saliency(:),'descend');
+percentageThreshold = 0.18;
+threshold = saliencySorted(floor(percentageThreshold*length(saliencySorted)));
+
+OtsuThreshold = graythresh(saliency);
+BW_otsu = im2bw(saliency,OtsuThreshold);
+
+
+BW = BW_otsu;
+%BW = im2bw(saliency, threshold);
+figure
+imshow(BW)
+se = strel('disk',2);        
+BW = imdilate(BW,se);
 % BW = imdilate(BW,se);
-% % BW = imdilate(BW,se);
-% BW = imerode(BW,se);
-% figure
-% imshow(BW)
-% 
-% %find the largest one
-% CC = bwconncomp(BW);
-% numPixels = cellfun(@numel,CC.PixelIdxList);
-% [biggest,idx] = max(numPixels);
-% BW(:) = 0;
-% BW(CC.PixelIdxList{idx}) = 1;
-% figure
-% imshow(BW)
-% 
-% STATS = regionprops(BW, 'BoundingBox');
-% b = STATS.BoundingBox;
-% boundingbox = [ceil(b(2)),ceil(b(1)),floor(b(4)),floor(b(3))];
-% boundingbox(3) = boundingbox(1) + boundingbox(3) - 1;
-% boundingbox(4) = boundingbox(2) + boundingbox(4) - 1;
-% finalIm = drawRectangleOnImage(im,boundingbox);
-% figure
-% imshow(finalIm)
+BW = imerode(BW,se);
+figure
+imshow(BW)
+
+%find the largest one
+CC = bwconncomp(BW);
+numPixels = cellfun(@numel,CC.PixelIdxList);
+[biggest,idx] = max(numPixels);
+BW(:) = 0;
+BW(CC.PixelIdxList{idx}) = 1;
+figure
+imshow(BW)
+
+STATS = regionprops(BW, 'BoundingBox');
+b = STATS.BoundingBox;
+boundingbox = [ceil(b(2)),ceil(b(1)),floor(b(4)),floor(b(3))];
+boundingbox(3) = boundingbox(1) + boundingbox(3) - 1;
+boundingbox(4) = boundingbox(2) + boundingbox(4) - 1;
+finalIm = drawRectangleOnImage(im,boundingbox);
+figure
+imshow(finalIm)
