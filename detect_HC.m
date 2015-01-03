@@ -1,9 +1,11 @@
-clc;clear;
-addpath('Dependencies/RGB2Lab')
-addpath('pic')
-tic
-im = imread('3.jpg');
+function [ BW_with_biggest_CC ] = detect_HC( im  )
+%detect_HC this function perform the saliency detection using histogram
+%based method, this is a wrapper function
+%   im : is the input image to be detected
+% BW_with_biggest_CC : is the output binary 
+% image with the detection result marked with 1
 
+addpath('Dependencies/RGB2Lab')
 
 quant_im = zeros(size(im));
 for k = 1:3
@@ -19,8 +21,6 @@ quant_im(quant_im==0) = 1;
 %show the image after quantization
 quant_im_minus1 = quant_im - 1;
 quant_im_show = quant_im_minus1 * 23;
-
-
 
 lab = RGB2Lab(quant_im_show);
 %begin to count
@@ -90,7 +90,7 @@ for i = 1:size(rareColorList,1)
 
         diffList(j) = norm(theDiff);
     end
-    [sortedList,diffListRank] = sort(diffList);
+    [~,diffListRank] = sort(diffList);
     substitudeColorRank = diffListRank(1);
     substitudeColor = mainColorList(substitudeColorRank,1:3);
     changeColorSpace{I,J,K} = substitudeColor;
@@ -115,8 +115,6 @@ for i = 1:size(quant_im,1)
         quant_im_reduce(i,j,3) = newColor(3);
     end
 end
-quant_im_reduce_toshow = (quant_im_reduce - 1) * 23;
-
 
 
 %begin to calculate the saliency
@@ -209,73 +207,25 @@ saliencyIm = saliencyIm / theSaliencyMax;
 saliency = saliencyIm;
 
 
-%this part show one color
-%mat = ones(300,300,3);
-%colorNUM = 3;
-%mat(:,:,1) = mat(:,:,1) * (rareColorList(colorNUM,1) - 1)*23;
-%mat(:,:,2) = mat(:,:,2) * (rareColorList(colorNUM,2) - 1)*23;
-%mat(:,:,3) = mat(:,:,3) * (rareColorList(colorNUM,3) - 1)*23;
-%mat = uint8(mat);
-%figure
-%imshow(mat)
-
-
-
-
 saliencySorted = sort(saliency(:),'descend');
 percentageThreshold = 0.20;
 threshold = saliencySorted(floor(percentageThreshold*length(saliencySorted)));
 
-OtsuThreshold = graythresh(saliency);
-BW_otsu = im2bw(saliency,OtsuThreshold);
 
-
-%BW = BW_otsu;
 BW = im2bw(saliency, threshold);
 
 se = strel('disk',2);        
 BW_after_dilate = imdilate(BW,se);
-% BW = imdilate(BW,se);
 BW_after_dilate = imerode(BW_after_dilate,se);
 
 
 %find the largest one
 CC = bwconncomp(BW_after_dilate);
 numPixels = cellfun(@numel,CC.PixelIdxList);
-[biggest,idx] = max(numPixels);
+[~,idx] = max(numPixels);
 BW_with_biggest_CC = zeros(size(BW));
 BW_with_biggest_CC(CC.PixelIdxList{idx}) = 1;
 
 
-STATS = regionprops(BW_with_biggest_CC, 'BoundingBox');
-b = STATS.BoundingBox;
-boundingbox = [ceil(b(2)),ceil(b(1)),floor(b(4)),floor(b(3))];
-boundingbox(3) = boundingbox(1) + boundingbox(3) - 1;
-boundingbox(4) = boundingbox(2) + boundingbox(4) - 1;
-finalIm = drawRectangleOnImage(im,boundingbox);
+end
 
-toc
-%show  all the images
-subplot(3,3,1),
-imshow(im)
-
-subplot(3,3,2),
-imshow(quant_im_show)
-
-subplot(3,3,3),
-imshow(quant_im_reduce_toshow)
-
-subplot(3,3,4),
-imshow(saliency)
-
-subplot(3,3,5),
-imshow(BW)
-
-subplot(3,3,6),
-imshow(BW_after_dilate)
-
-subplot(3,3,7),
-imshow(BW_with_biggest_CC)
-
-subplot(3,3,8),
-imshow(finalIm)

@@ -1,6 +1,7 @@
 clc;clear;close all;
 addpath('Dependencies/RGB2Lab')
 addpath('pic')
+tic
 
 % Compile the code of Felzenszwalb and Huttenlocher, IJCV 2004.
 if(~exist('mexFelzenSegmentIndex'))
@@ -287,6 +288,7 @@ boundingbox(3) = boundingbox(1) + boundingbox(3) - 1;
 boundingbox(4) = boundingbox(2) + boundingbox(4) - 1;
 finalIm = drawRectangleOnImage(im,boundingbox);
 
+toc
 
 %show  all the images
 subplot(3,3,1),
