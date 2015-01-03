@@ -1,4 +1,4 @@
-clc;clear;
+clc;clear;close all;
 addpath('Dependencies/RGB2Lab')
 addpath('pic')
 tic

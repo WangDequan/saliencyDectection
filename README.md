@@ -12,6 +12,10 @@ saliencyDectection Using region based method
 ------------------ 
 this is implemented in saliencyDetectRegion.m
 
+testing on benchmark
+-------------------
+I use the testRC.m and testHC.m two files to test the methods on bench mark on testset folder, to save space, I do not upload the testset folder
+
 reference
 ------------------
 the original paper is in 
