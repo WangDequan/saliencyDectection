@@ -1,8 +1,37 @@
-clc;clear;
+clc;clear;close all;
 addpath('Dependencies/RGB2Lab')
 addpath('pic')
 
-im = imread('3.jpg');
+% Compile the code of Felzenszwalb and Huttenlocher, IJCV 2004.
+if(~exist('mexFelzenSegmentIndex'))
+    fprintf('Compiling the segmentation algorithm of:\n');
+
+    mex Dependencies/FelzenSegment/mexFelzenSegmentIndex.cpp -output mexFelzenSegmentIndex;
+end
+
+
+% Thresholds for the Felzenszwalb and Huttenlocher segmentation algorithm.
+% Note that by default, we set minSize = k, and sigma = 0.8.
+k = 200; % controls size of segments of initial segmentation. 
+minSize = k;
+sigma = 0.8;
+
+im = imread('1.jpg');
+
+
+%change the image to lab color map
+colorTransform = makecform('srgb2lab');
+imageToSegment = applycform(im, colorTransform);
+colourIm = double(imageToSegment) / 255;
+imageHeight = size(colourIm,1);
+imageWidth = size(colourIm,2);
+
+    
+% Get initial segmentation, boxes, and neighbouring blobs
+[blobIndIm blobBoxes neighbours] = mexFelzenSegmentIndex(imageToSegment, sigma, k, minSize);
+
+
+
 
 
 quant_im = zeros(size(im));
@@ -19,7 +48,6 @@ quant_im(quant_im==0) = 1;
 %show the image after quantization
 quant_im_minus1 = quant_im - 1;
 quant_im_show = quant_im_minus1 * 23;
-
 
 
 lab = RGB2Lab(quant_im_show);
@@ -72,7 +100,7 @@ for j = i + 1:length(sortedArray)
 end
 
 %replace each rare colour to main colour
-for i = 1:size(rareColorList,1)
+for i = 1:length(rareColorList)
     tmp = rareColorList(i,1:3);
     I = tmp(1);
     J = tmp(2);
@@ -118,18 +146,7 @@ end
 quant_im_reduce_toshow = (quant_im_reduce - 1) * 23;
 
 
-
-%begin to calculate the saliency
-frequencyList = zeros(size(mainColorList,1),1);
-for i = 1:size(mainColorList,1)
-    tmp = mainColorList(i,1:3);
-    I = tmp(1);
-    J = tmp(2);
-    K = tmp(3);
-    frequencyList(i) = countSpace(I,J,K) / totalPixelNum;
-end
-
-saliencyList = zeros(size(mainColorList,1),1);
+%so now we can begin to work with fewer colours
 diffLabMatrix = zeros(size(mainColorList,1),size(mainColorList,1));
 for i = 1:size(mainColorList,1)
     tmp = mainColorList(i,1:3);
@@ -155,83 +172,94 @@ for i = 1:size(mainColorList,1)
 
 end
 
-for i = 1:size(mainColorList,1)
-    saliencySum = 0;
-    for j = 1:size(mainColorList,1)
-        if(i == j)
-            continue;
-        end
-        saliencySum = saliencySum + frequencyList(j) * diffLabMatrix(i,j);
-    end
-    saliencyList(i) = saliencySum;
-end
-
-%we need to smooth the saliency list
-m = ceil(length(saliencyList) / 4);
-newSaliencyList = size(saliencyList);
-for i = 1:length(saliencyList)
-    [~,neighbourList] = sort( diffLabMatrix(:,i) );
-    nearColorList = neighbourList(1:m);
-    T = 0;
-    for j = 1:m
-        T = T + diffLabMatrix(i,nearColorList(j));
-    end
-    newSaliencySum = 0;
-    for j = 1:m
-        newSaliencySum = newSaliencySum + (T - diffLabMatrix(i,nearColorList(j)) )*saliencyList(nearColorList(j));
-    end
-    newSaliencyList(i) = newSaliencySum / ((m-1)*T);
-end
-
-%create the saliency space
-saliencySpace = zeros(12,12,12);
-for i = 1:size(mainColorList,1)
+%get the frequency table for each region
+numberOfRegion = size(neighbours,1);
+numberOfMainColor = size(mainColorList,1);
+frequencyTable = zeros(numberOfMainColor,numberOfRegion);
+mainColorIndexSpace = zeros(12,12,12);
+for i = 1:size(mainColorList,1)   %this is an inverted list
     tmp = mainColorList(i,1:3);
     I = tmp(1);
     J = tmp(2);
     K = tmp(3);
-    saliencySpace(I,J,K) = newSaliencyList(i);
+    mainColorIndexSpace(I,J,K) = i;
+    
+end
+regionSizeList = zeros(numberOfRegion,1);
+for i = 1: numberOfRegion
+    regionPos = find(blobIndIm == i);
+    regionSizeList(i) = length(regionPos);
+    
+    for j = 1:length(regionPos)
+        pos = regionPos(j);
+        [x,y] = ind2sub(size(blobIndIm),pos);
+        I = quant_im_reduce(x,y,1);
+        J = quant_im_reduce(x,y,2);
+        K = quant_im_reduce(x,y,3);
+    
+        
+        frequencyTable(mainColorIndexSpace(I,J,K),i) = frequencyTable(mainColorIndexSpace(I,J,K),i) + 1; 
+    end
+    frequencyTable(:,i) = frequencyTable(:,i) / regionSizeList(i);
 end
 
-theSaliencyMax = max(newSaliencyList(:));
-saliencyIm = zeros(size(im,1),size(im,2));
-for i = 1:size(im,1)
-    for j = 1:size(im,2)
-        tmp = quant_im_reduce(i,j,1:3);
-        I = tmp(1);
-        J = tmp(2);
-        K = tmp(3);
-        saliencyIm(i,j) = saliencySpace(I,J,K);
+regionColorDistMatrix = zeros(numberOfRegion,numberOfRegion);
+for i = 1:numberOfRegion
+    for j = i+1 : numberOfRegion
+        diffValue = 1 - sum(min(frequencyTable(:,i),frequencyTable(:,j)) );
+        regionColorDistMatrix(i,j) = diffValue;
+        regionColorDistMatrix(j,i) = diffValue;
+    end
+
+end
+
+%get the region distance matrix
+longestDist = norm(size(quant_im_reduce));
+STATS = regionprops(blobIndIm, 'Centroid');
+regionGeoDistMatrix = zeros(numberOfRegion,numberOfRegion);
+for i = 1:numberOfRegion
+    for j = i+1 : numberOfRegion
+        regionGeoDistMatrix(i,j) = norm(STATS(i).Centroid - STATS(j).Centroid) / longestDist;
+        regionGeoDistMatrix(j,i) = regionGeoDistMatrix(i,j);
     end
 end
 
-saliencyIm = saliencyIm / theSaliencyMax;
-saliency = saliencyIm;
+regionSaliencyList = zeros(numberOfRegion,1);
+for i = 1:numberOfRegion
+    saliencyValue = 0;
+    for j = 1:numberOfRegion
+        if(i==j)
+            continue;
+        end
+        saliencyValue = saliencyValue + exp(regionGeoDistMatrix(i,j)/0.4) * regionSizeList(j) * regionColorDistMatrix(i,j);
+    end
+    regionSaliencyList(i) = saliencyValue;
+end
 
+saliencyMax = max(regionSaliencyList);
+regionSaliencyList = regionSaliencyList / saliencyMax;
 
-%this part show one color
-%mat = ones(300,300,3);
-%colorNUM = 3;
-%mat(:,:,1) = mat(:,:,1) * (rareColorList(colorNUM,1) - 1)*23;
-%mat(:,:,2) = mat(:,:,2) * (rareColorList(colorNUM,2) - 1)*23;
-%mat(:,:,3) = mat(:,:,3) * (rareColorList(colorNUM,3) - 1)*23;
-%mat = uint8(mat);
-%figure
-%imshow(mat)
-
+%paint the saliency map
+saliency = zeros(size(blobIndIm));
+for i = 1:numberOfRegion
+    regionPos = find(blobIndIm == i);
+    saliency(regionPos) = regionSaliencyList(i);
+end
 
 
 
 saliencySorted = sort(saliency(:),'descend');
-percentageThreshold = 0.20;
+percentageThreshold = 0.18;
 threshold = saliencySorted(floor(percentageThreshold*length(saliencySorted)));
 
 OtsuThreshold = graythresh(saliency);
 BW_otsu = im2bw(saliency,OtsuThreshold);
 
 
-%BW = BW_otsu;
-BW = im2bw(saliency, threshold);
+BW = BW_otsu;
+%BW = im2bw(saliency, threshold);
+
+
 
 se = strel('disk',2);        
 BW_after_dilate = imdilate(BW,se);

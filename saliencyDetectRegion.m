@@ -16,8 +16,8 @@ k = 200; % controls size of segments of initial segmentation.
 minSize = k;
 sigma = 0.8;
 
-im = imread('1.jpg');
-imshow(im)
+im = imread('5.jpg');
+
 
 %change the image to lab color map
 colorTransform = makecform('srgb2lab');
@@ -48,8 +48,7 @@ quant_im(quant_im==0) = 1;
 %show the image after quantization
 quant_im_minus1 = quant_im - 1;
 quant_im_show = quant_im_minus1 * 23;
-figure
-imshow(quant_im_show)
+
 
 lab = RGB2Lab(quant_im_show);
 %begin to count
@@ -145,8 +144,7 @@ for i = 1:size(quant_im,1)
     end
 end
 quant_im_reduce_toshow = (quant_im_reduce - 1) * 23;
-figure
-imshow(quant_im_reduce_toshow)
+
 
 %so now we can begin to work with fewer colours
 diffLabMatrix = zeros(size(mainColorList,1),size(mainColorList,1));
@@ -253,8 +251,7 @@ for i = 1:numberOfRegion
     saliency(regionPos) = regionSaliencyList(i);
 end
 
-figure
-imshow(saliency)
+
 
 saliencySorted = sort(saliency(:),'descend');
 percentageThreshold = 0.18;
@@ -266,29 +263,52 @@ BW_otsu = im2bw(saliency,OtsuThreshold);
 
 BW = BW_otsu;
 %BW = im2bw(saliency, threshold);
-figure
-imshow(BW)
+
+
+
 se = strel('disk',2);        
-BW = imdilate(BW,se);
+BW_after_dilate = imdilate(BW,se);
 % BW = imdilate(BW,se);
-BW = imerode(BW,se);
-figure
-imshow(BW)
+BW_after_dilate = imerode(BW_after_dilate,se);
+
 
 %find the largest one
-CC = bwconncomp(BW);
+CC = bwconncomp(BW_after_dilate);
 numPixels = cellfun(@numel,CC.PixelIdxList);
 [biggest,idx] = max(numPixels);
-BW(:) = 0;
-BW(CC.PixelIdxList{idx}) = 1;
-figure
-imshow(BW)
+BW_with_biggest_CC = zeros(size(BW));
+BW_with_biggest_CC(CC.PixelIdxList{idx}) = 1;
 
-STATS = regionprops(BW, 'BoundingBox');
+
+STATS = regionprops(BW_with_biggest_CC, 'BoundingBox');
 b = STATS.BoundingBox;
 boundingbox = [ceil(b(2)),ceil(b(1)),floor(b(4)),floor(b(3))];
 boundingbox(3) = boundingbox(1) + boundingbox(3) - 1;
 boundingbox(4) = boundingbox(2) + boundingbox(4) - 1;
 finalIm = drawRectangleOnImage(im,boundingbox);
-figure
+
+
+%show  all the images
+subplot(3,3,1),
+imshow(im)
+
+subplot(3,3,2),
+imshow(quant_im_show)
+
+subplot(3,3,3),
+imshow(quant_im_reduce_toshow)
+
+subplot(3,3,4),
+imshow(saliency)
+
+subplot(3,3,5),
+imshow(BW)
+
+subplot(3,3,6),
+imshow(BW_after_dilate)
+
+subplot(3,3,7),
+imshow(BW_with_biggest_CC)
+
+subplot(3,3,8),
 imshow(finalIm)
