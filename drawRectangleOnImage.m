@@ -14,9 +14,9 @@ for i = 1:size(boundingbox,1)
     coor4 = boundingbox(i,4);
 
     %this is the random color for the
-    R = uint8(randi(255,1,1));
-    G = uint8(randi(255,1,1));
-    B = uint8(randi(255,1,1));
+    R = uint8(255);
+    G = uint8(0);
+    B = uint8(0);
 
     %left line
     im(coor1:coor3,coor2,1) = R;

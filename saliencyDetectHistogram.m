@@ -1,8 +1,8 @@
 clc;clear;
-addpath('RGB2Lab')
+addpath('Dependencies/RGB2Lab')
 addpath('pic')
 
-im = imread('2205.jpg');
+im = imread('17.jpg');
 imshow(im)
 
 quant_im = zeros(size(im));
@@ -49,7 +49,7 @@ end
 [sortedArray,rank] = sort(countSpace(:),'descend');
 totalPixelNum = size(im,1) * size(im,2);
 sumPixel = 0;
-pixelThreshold = 0.99;
+pixelThreshold = 0.95;
 totalPixelThreshold = floor(totalPixelNum * pixelThreshold);
 
 for i = 1:length(sortedArray)
