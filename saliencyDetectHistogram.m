@@ -2,7 +2,7 @@ clc;clear;close all;
 addpath('Dependencies/RGB2Lab')
 addpath('pic')
 tic
-im = imread('3.jpg');
+im = imread('5.jpg');
 
 
 quant_im = zeros(size(im));
@@ -258,24 +258,32 @@ toc
 %show  all the images
 subplot(3,3,1),
 imshow(im)
+title('1')
 
 subplot(3,3,2),
 imshow(quant_im_show)
+title('2')
 
 subplot(3,3,3),
 imshow(quant_im_reduce_toshow)
+title('3')
 
 subplot(3,3,4),
 imshow(saliency)
+title('4')
 
 subplot(3,3,5),
 imshow(BW)
+title('5')
 
 subplot(3,3,6),
 imshow(BW_after_dilate)
+title('6')
 
 subplot(3,3,7),
 imshow(BW_with_biggest_CC)
+title('7')
 
-subplot(3,3,8),
+
+figure
 imshow(finalIm)

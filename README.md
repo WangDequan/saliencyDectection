@@ -14,7 +14,11 @@ this is implemented in saliencyDetectRegion.m
 
 testing on benchmark
 -------------------
-I use the testRC.m and testHC.m two files to test the methods on bench mark on testset folder, to save space, I do not upload the testset folder
+I use the testRC.m and testHC.m two files to test the methods on bench mark on testset folder, to save space, I do not upload the testset folder, the smallset is only a sample of the large set
+
+test Result
+-------------------
+data file are in the result folder
 
 reference
 ------------------
